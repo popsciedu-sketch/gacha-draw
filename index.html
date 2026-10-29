@@ -153,23 +153,31 @@
     pointer-events: none; z-index: 6; overflow: visible;
   }
   .eject-cap {
-    position: absolute; left: 50%; top: 58%;
-    width: 72px; height: 86px; margin-left: -36px;
+    position: absolute; left: 50%; top: 52%;
+    width: 144px; height: 172px; margin-left: -72px;
     border-radius: 50% 50% 48% 48% / 58% 58% 42% 42%;
     display: grid; place-items: center;
-    font-weight: 900; font-size: 0.85rem; text-align: center;
-    color: #1a1028; padding: 0.35rem;
-    opacity: 0; transform: translateY(0) scale(0.4);
-    box-shadow: 0 16px 32px rgba(0,0,0,0.45), inset -4px -6px 10px rgba(0,0,0,0.2);
+    font-weight: 900; font-size: 1.15rem; text-align: center;
+    color: #2a1408; padding: 0.5rem;
+    opacity: 0; transform: translateY(0) scale(0.35);
+    background: radial-gradient(circle at 30% 28%, #fff9e6, transparent 42%),
+                linear-gradient(165deg, #fff3b0, #ffd56a 45%, #e8a800 100%) !important;
+    border: 3px solid rgba(255,255,255,0.85);
+    box-shadow:
+      0 20px 40px rgba(0,0,0,0.5),
+      0 0 40px rgba(255,213,106,0.55),
+      inset -5px -8px 14px rgba(120,70,0,0.25);
+    z-index: 12;
   }
   .eject-cap.show {
-    animation: ejectOut 1.5s cubic-bezier(.12,1.25,.28,1) forwards;
+    animation: ejectOut 3.2s cubic-bezier(.12,1.15,.28,1) forwards;
   }
   @keyframes ejectOut {
-    0% { opacity: 0; transform: translateY(10px) scale(0.35) rotate(-25deg); }
-    25% { opacity: 1; transform: translateY(-90px) scale(1.2) rotate(12deg); }
-    55% { transform: translateY(-40px) scale(1.05) rotate(-4deg); }
-    100% { opacity: 1; transform: translateY(-55px) scale(1.1) rotate(0); }
+    0%   { opacity: 0; transform: translateY(30px) scale(0.3) rotate(-20deg); }
+    14%  { opacity: 1; transform: translateY(-110px) scale(1.15) rotate(10deg); }
+    35%  { opacity: 1; transform: translateY(-70px) scale(1.05) rotate(-3deg); }
+    75%  { opacity: 1; transform: translateY(-78px) scale(1.08) rotate(0); }
+    100% { opacity: 0; transform: translateY(-120px) scale(0.95) rotate(4deg); }
   }
 
   .controls {
@@ -287,7 +295,7 @@
   }
   .win-banner.on {
     visibility: visible;
-    animation: bannerFly 2.8s cubic-bezier(.16,.85,.25,1) forwards;
+    animation: bannerFly 3.4s cubic-bezier(.16,.85,.25,1) forwards;
   }
   .win-banner .board {
     position: relative;
@@ -330,8 +338,8 @@
   }
   @keyframes bannerFly {
     0%   { opacity: 0; transform: scale(0.4) translateY(60px); }
-    12%  { opacity: 1; transform: scale(1.12) translateY(0); }
-    70%  { opacity: 1; transform: scale(1) translateY(-8px); }
+    10%  { opacity: 1; transform: scale(1.12) translateY(0); }
+    78%  { opacity: 1; transform: scale(1) translateY(-8px); }
     100% { opacity: 0; transform: scale(0.95) translateY(-90px); }
   }
 
@@ -906,7 +914,7 @@ function showWinBanner(name) {
   showWinBanner._tm = setTimeout(() => {
     el.classList.remove("on");
     el.style.visibility = "hidden";
-  }, 2900);
+  }, 3500);
   tone(330, 0.18, "sine", 0.05);
   tone(495, 0.22, "sine", 0.05, 0.1);
   tone(660, 0.28, "triangle", 0.06, 0.2);
@@ -982,16 +990,20 @@ async function drawOnce() {
   flash();
 
   const eject = document.getElementById("ejectCap");
-  eject.style.background = `radial-gradient(circle at 30% 28%, #fff9, transparent 42%), ${color}`;
-  eject.textContent = name;
+  eject.classList.remove("show");
+  void eject.offsetWidth; // restart CSS animation every win
+  eject.style.background = ""; // use CSS gold
+  eject.innerHTML = `<span style="font-size:0.7rem;letter-spacing:0.2em;opacity:.75">中獎</span><br>${name}`;
   eject.classList.add("show");
-  setTimeout(() => { sfxWinFanfare(); confetti(color); }, 350);
+  clearTimeout(window.__ejectHide);
+  window.__ejectHide = setTimeout(() => eject.classList.remove("show"), 3300);
+  setTimeout(() => { sfxWinFanfare(); confetti("#ffd56a"); }, 350);
 
   renderChips();
   renderWinners();
   updateMeta();
 
-  await wait(1600);
+  await wait(3200);
 
   if (winners.length >= MAX_WIN) {
     document.getElementById("hint").textContent = "抽籤完成！";
