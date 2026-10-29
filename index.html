@@ -131,13 +131,13 @@
   }
   #capCanvas {
     position: absolute;
-    left: 14%; top: 5.5%; width: 72%; height: 48%;
+    left: 12%; top: 4%; width: 76%; height: 50%;
     border-radius: 50% 50% 46% 46% / 62% 62% 38% 38%;
     z-index: 2;
   }
   .glass-shine {
     position: absolute;
-    left: 14%; top: 5.5%; width: 72%; height: 48%;
+    left: 12%; top: 4%; width: 76%; height: 50%;
     border-radius: 50% 50% 46% 46% / 62% 62% 38% 38%;
     background:
       linear-gradient(115deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.08) 18%, transparent 36%),
@@ -276,52 +276,63 @@
   }
 
   .win-banner {
-    position: fixed; left: 0; right: 0; top: 18%;
-    z-index: 45; pointer-events: none;
-    display: flex; justify-content: center;
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    pointer-events: none;
+    display: grid;
+    place-items: center;
     opacity: 0;
+    visibility: hidden;
   }
   .win-banner.on {
-    animation: bannerFly 2.4s cubic-bezier(.12,.8,.22,1) forwards;
+    visibility: visible;
+    animation: bannerFly 2.8s cubic-bezier(.16,.85,.25,1) forwards;
   }
   .win-banner .board {
-    min-width: min(92vw, 520px);
-    padding: 1rem 1.4rem 1.15rem;
-    border-radius: 18px;
+    position: relative;
+    width: min(92vw, 540px);
+    padding: 1.15rem 1.5rem 1.35rem;
+    border-radius: 22px;
     text-align: center;
-    color: #1a1028;
-    background:
-      linear-gradient(180deg, #fff8d6, #ffd56a 55%, #f0b429);
-    border: 4px solid #fff;
+    color: #2a1408;
+    background: linear-gradient(165deg, #fff9e0 0%, #ffe07a 42%, #f5b820 100%);
+    border: 5px solid #ffffff;
+    outline: 4px solid #ff4f9a;
     box-shadow:
-      0 0 0 4px rgba(255,79,154,0.55),
-      0 18px 50px rgba(0,0,0,0.45),
-      0 0 80px rgba(255,213,106,0.45);
-    transform: rotate(-2deg);
+      0 20px 60px rgba(0,0,0,0.55),
+      0 0 0 10px rgba(255,213,106,0.25),
+      0 0 100px rgba(255,213,106,0.55);
   }
   .win-banner .tag {
-    font-size: clamp(0.75rem, 2.5vw, 0.9rem);
-    font-weight: 800; letter-spacing: 0.28em;
-    opacity: 0.75; margin-bottom: 0.15rem;
+    font-size: clamp(0.85rem, 2.8vw, 1rem);
+    font-weight: 900;
+    letter-spacing: 0.35em;
+    color: #a85a00;
+    margin-bottom: 0.2rem;
   }
   .win-banner .who {
-    font-size: clamp(2.2rem, 10vw, 3.6rem);
-    font-weight: 900; line-height: 1.05;
-    letter-spacing: 0.04em;
-    text-shadow: 0 2px 0 rgba(255,255,255,0.6);
+    font-size: clamp(2.6rem, 12vw, 4.2rem);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: 0.03em;
+    color: #1a1028;
+    text-shadow: 0 3px 0 rgba(255,255,255,0.75), 0 8px 24px rgba(168,90,0,0.35);
+    word-break: break-word;
   }
   .win-banner .spark {
-    position: absolute; inset: -20px;
+    position: absolute; inset: -30vmax;
     background:
-      radial-gradient(circle at 20% 40%, rgba(255,79,154,0.35), transparent 40%),
-      radial-gradient(circle at 80% 50%, rgba(94,240,255,0.3), transparent 42%);
-    z-index: -1; filter: blur(2px);
+      radial-gradient(circle at 50% 45%, rgba(255,213,106,0.55), transparent 42%),
+      radial-gradient(circle at 30% 40%, rgba(255,79,154,0.35), transparent 35%),
+      radial-gradient(circle at 70% 50%, rgba(94,240,255,0.3), transparent 35%);
+    z-index: -1;
   }
   @keyframes bannerFly {
-    0%   { opacity: 0; transform: translateY(40px) scale(0.55) rotate(-8deg); }
-    18%  { opacity: 1; transform: translateY(0) scale(1.08) rotate(2deg); }
-    55%  { opacity: 1; transform: translateY(-6px) scale(1) rotate(-1deg); }
-    100% { opacity: 0; transform: translateY(-70px) scale(0.92) rotate(3deg); }
+    0%   { opacity: 0; transform: scale(0.4) translateY(60px); }
+    12%  { opacity: 1; transform: scale(1.12) translateY(0); }
+    70%  { opacity: 1; transform: scale(1) translateY(-8px); }
+    100% { opacity: 0; transform: scale(0.95) translateY(-90px); }
   }
 
   .toast {
@@ -440,13 +451,6 @@
   </div>
 
   <canvas id="fx"></canvas>
-  <div class="win-banner" id="winBanner" aria-live="assertive">
-    <div class="spark"></div>
-    <div class="board">
-      <div class="tag">★ 中獎 ★</div>
-      <div class="who" id="winBannerName"></div>
-    </div>
-  </div>
   <div class="flash" id="flash"></div>
   <div class="toast" id="toast"></div>
 
@@ -583,22 +587,53 @@ function rebuildAll() {
 
 function buildCapsules() {
   const canvas = document.getElementById("capCanvas");
+  // ensure readable pixel size before packing
+  if (canvas.width < 200) {
+    canvas.width = 420;
+    canvas.height = 340;
+  }
   const W = canvas.width, H = canvas.height;
   capsules = [];
+  const total = ENTRIES.reduce((s, [, n]) => s + n, 0);
+  // size so all tickets fit visibly (one capsule per ticket)
+  const r = Math.max(11, Math.min(18, Math.floor(Math.sqrt((W * H * 0.28) / total) * 0.55)));
+  // place tickets person-by-person in columns so proportions are obvious
+  const cx = W / 2, cy = H * 0.58;
+  const rx = W * 0.42, ry = H * 0.42;
+  let placed = 0;
   ENTRIES.forEach(([name, count], i) => {
     const color = COLORS[i % COLORS.length];
     for (let k = 0; k < count; k++) {
-      const r = 14 + Math.random() * 3;
-      // place inside lower half of ellipse
-      let x, y, ok = false;
-      for (let tries = 0; tries < 40 && !ok; tries++) {
-        x = W * 0.18 + Math.random() * W * 0.64;
-        y = H * 0.45 + Math.random() * H * 0.42;
-        ok = insideDome(x, y, r, W, H);
+      // fan around bottom of dome by ticket index
+      const t = (placed + 0.5) / total;
+      const ang = Math.PI * (0.15 + 0.7 * t); // bottom arc-ish
+      const rad = 0.35 + 0.55 * ((placed % 5) / 5);
+      let x = cx + Math.cos(ang) * rx * rad * (0.7 + (k % 3) * 0.08);
+      let y = cy + Math.sin(ang) * ry * rad * 0.85 + (k * 2);
+      // jitter small but keep inside
+      x += (Math.random() - 0.5) * r * 0.4;
+      y += (Math.random() - 0.5) * r * 0.4;
+      if (!insideDome(x, y, r, W, H)) {
+        x = cx + (Math.random() - 0.5) * rx * 1.2;
+        y = cy + Math.random() * ry * 0.9;
       }
-      capsules.push(new Capsule(name, color, x, y, r));
+      const cap = new Capsule(name, color, x, y, r + (Math.random() * 2 - 1));
+      capsules.push(cap);
+      placed++;
     }
   });
+  // assert exact ticket count
+  if (capsules.length !== total) {
+    console.error("capsule count mismatch", capsules.length, total);
+  }
+  // settle briefly so they pack without overlapping too hard
+  for (let n = 0; n < 40; n++) {
+    for (let i = 0; i < capsules.length; i++) {
+      for (let j = i + 1; j < capsules.length; j++) collide(capsules[i], capsules[j]);
+      resolveDome(capsules[i], W, H);
+      capsules[i].vx *= 0.5; capsules[i].vy *= 0.5;
+    }
+  }
 }
 
 function insideDome(x, y, r, W, H) {
@@ -787,11 +822,15 @@ function resizeCapCanvas() {
 function renderChips() {
   const box = document.getElementById("chips");
   box.innerHTML = "";
-  ENTRIES.forEach(([name], i) => {
+  ENTRIES.forEach(([name, full], i) => {
     const n = remaining.get(name) ?? 0;
+    const color = COLORS[i % COLORS.length];
     const el = document.createElement("div");
     el.className = "chip" + (n === 0 ? " out" : "");
-    el.innerHTML = `<span class="n" style="background:${COLORS[i % COLORS.length]}">${n}</span>${name}`;
+    const dots = Array.from({ length: full }, (_, k) =>
+      `<i style="display:inline-block;width:7px;height:9px;border-radius:50%;margin-left:2px;background:${k < n ? color : '#555'};opacity:${k < n ? 1 : 0.25}"></i>`
+    ).join("");
+    el.innerHTML = `<span class="n" style="background:${color}">${n}</span>${name}${dots}`;
     box.appendChild(el);
   });
 }
@@ -856,11 +895,18 @@ function confetti(color) {
 function showWinBanner(name) {
   const el = document.getElementById("winBanner");
   const nm = document.getElementById("winBannerName");
+  if (!el || !nm) return;
   nm.textContent = name;
   el.classList.remove("on");
+  // force reflow so animation restarts every draw
   void el.offsetWidth;
+  el.style.visibility = "visible";
   el.classList.add("on");
-  // voice-like rising chime for banner
+  clearTimeout(showWinBanner._tm);
+  showWinBanner._tm = setTimeout(() => {
+    el.classList.remove("on");
+    el.style.visibility = "hidden";
+  }, 2900);
   tone(330, 0.18, "sine", 0.05);
   tone(495, 0.22, "sine", 0.05, 0.1);
   tone(660, 0.28, "triangle", 0.06, 0.2);
@@ -1078,5 +1124,12 @@ window.addEventListener("resize", () => {
   if (document.getElementById("play").classList.contains("active")) resizeCapCanvas();
 });
 </script>
+  <div class="win-banner" id="winBanner" aria-live="assertive">
+    <div class="spark"></div>
+    <div class="board">
+      <div class="tag">★ 中獎 ★</div>
+      <div class="who" id="winBannerName"></div>
+    </div>
+  </div>
 </body>
 </html>
