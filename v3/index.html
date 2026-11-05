@@ -2,1154 +2,882 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#fbf7f8" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<meta http-equiv="Pragma" content="no-cache" />
-<meta http-equiv="Expires" content="0" />
-<meta name="theme-color" content="#12081f" />
-<title>扭蛋抽籤機</title>
+<title>扭蛋抽籤 · 加權抽獎</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
-  :root {
-    --bg: #12081f;
-    --ink: #fff8ff;
-    --gold: #ffd56a;
-    --pink: #ff4f9a;
-    --cyan: #5ef0ff;
-    --safe-b: env(safe-area-inset-bottom, 0px);
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body {
-    margin: 0; height: 100%;
-    font-family: "Segoe UI", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
-    color: var(--ink);
-    background:
-      radial-gradient(900px 500px at 50% -5%, #4a1d6b 0%, transparent 55%),
-      radial-gradient(700px 400px at 80% 90%, #1a3a5c 0%, transparent 50%),
-      linear-gradient(180deg, #1a0b2e, var(--bg));
-    overflow: hidden;
-  }
-  body { min-height: 100dvh; }
+:root {
+  --ground: #fbf7f8;
+  --surface: #ffffff;
+  --raised: #f3f4f6;
+  --border: #e5e7eb;
+  --rule: #f2f2f2;
+  --control: #d1d5db;
+  --text: #111827;
+  --muted: #5f6672;
+  --accent: #b8336a;
+  --accent-soft: #fdf2f7;
+  --accent-track: #f8dbe8;
+  --accent-ink: #6b1d3e;
+  --positive: #247b50;
+  --negative: #c4242a;
+  --primary: #111827;
+  --primary-ink: #ffffff;
+  --radius-card: 8px;
+  --radius-control: 6px;
+  --row-height: 52px;
+  --gap: 24px;
+  --pad: 24px;
+  --control-height: 36px;
+  --fs-title: 28px;
+  --fs-section: 16px;
+  --fs-kpi: 24px;
+  --fs-body: 14px;
+  --fs-small: 12px;
+  --font: "DM Sans", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font: var(--fs-body)/1.45 var(--font);
+  color: var(--text);
+  background: var(--ground);
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
 
-  .screen {
-    position: fixed; inset: 0;
-    display: none; flex-direction: column;
-    padding: max(0.75rem, env(safe-area-inset-top)) 0.9rem calc(0.9rem + var(--safe-b));
-  }
-  .screen.active { display: flex; }
+.app {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: 56px 1fr;
+}
+.topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 700; font-size: 15px; letter-spacing: -0.01em;
+}
+.mark {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--accent); color: #fff;
+  display: grid; place-items: center;
+  font-size: 13px; font-weight: 700;
+}
+.topbar .spacer { flex: 1; }
+.icon-btn {
+  height: 36px; min-width: 36px; padding: 0 12px;
+  border: 1px solid var(--border); border-radius: var(--radius-control);
+  background: var(--surface); color: var(--text);
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: var(--fs-small); font-weight: 500;
+}
+.icon-btn[aria-pressed="true"] {
+  background: var(--accent-soft); border-color: var(--accent-track); color: var(--accent-ink);
+}
 
-  /* —— Home —— */
-  #home {
-    align-items: center; justify-content: center; text-align: center; gap: 1rem;
-  }
-  .logo-wrap {
-    position: relative; width: min(78vw, 280px); aspect-ratio: 1;
-    margin-bottom: 0.25rem;
-  }
-  .logo-wrap canvas { width: 100%; height: 100%; display: block; }
-  #home h1 {
-    margin: 0; font-size: clamp(1.6rem, 6vw, 2.2rem); letter-spacing: 0.08em;
-    background: linear-gradient(90deg, #ffd56a, #fff, #5ef0ff);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    text-shadow: 0 0 40px rgba(255,213,106,0.25);
-  }
-  #home .sub {
-    max-width: 26rem; margin: 0 auto; opacity: 0.82; line-height: 1.55;
-    font-size: clamp(0.85rem, 2.8vw, 0.98rem);
-  }
-  .stat-row {
-    display: flex; gap: 0.55rem; flex-wrap: wrap; justify-content: center;
-  }
-  .pill {
-    padding: 0.4rem 0.85rem; border-radius: 999px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.16);
-    font-size: 0.85rem;
-  }
-  .pill b { color: var(--gold); }
-  .btn {
-    appearance: none; border: 0; cursor: pointer;
-    font-weight: 800; letter-spacing: 0.04em;
-    border-radius: 999px;
-    padding: 0.95rem 1.8rem;
-    font-size: 1.05rem;
-    color: #2a1040;
-    background: linear-gradient(180deg, #fff3b8, var(--gold) 55%, #e8a800);
-    box-shadow: 0 8px 0 #9a6800, 0 14px 30px rgba(0,0,0,0.4), 0 0 40px rgba(255,213,106,0.25);
-    transition: transform .12s, filter .12s;
-  }
-  .btn:active { transform: translateY(4px); box-shadow: 0 3px 0 #9a6800, 0 8px 16px rgba(0,0,0,0.35); }
-  .btn:disabled { filter: grayscale(.55) brightness(.7); cursor: not-allowed; box-shadow: none; }
-  .btn.ghost {
-    color: #fff; background: transparent;
-    border: 1px solid rgba(255,255,255,0.3);
-    box-shadow: none; font-weight: 600; font-size: 0.9rem;
-    padding: 0.55rem 1.1rem;
-  }
-  .btn.ghost:active { transform: scale(0.97); }
+.canvas {
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(16px + var(--safe-b)) max(16px, env(safe-area-inset-left));
+  max-width: 1120px; width: 100%; margin: 0 auto;
+}
+.screen { display: none; }
+.screen.active { display: block; }
 
-  /* —— Play —— */
-  #play { gap: 0.45rem; }
-  .topbar {
-    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
-  }
-  .topbar h2 {
-    margin: 0; font-size: clamp(1rem, 3.5vw, 1.25rem);
-    background: linear-gradient(90deg, var(--gold), #fff);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-  .meters {
-    display: flex; gap: 0.55rem; font-size: 0.78rem; opacity: 0.9;
-  }
-  .meters b { color: var(--gold); }
+.title-row {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px;
+  margin-bottom: 20px;
+}
+.title-row h1 {
+  margin: 0; font-size: clamp(22px, 4vw, var(--fs-title)); font-weight: 700;
+  letter-spacing: -0.02em; line-height: 1.15;
+}
+.title-row .sub {
+  margin: 0; color: var(--muted); font-size: var(--fs-body); flex: 1 1 200px;
+}
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
 
-  .play-grid {
-    flex: 1; min-height: 0;
-    display: grid;
-    grid-template-columns: 1.15fr 0.85fr;
-    gap: 0.65rem;
-  }
-  @media (max-width: 860px) {
-    .play-grid {
-      grid-template-columns: 1fr;
-      grid-template-rows: minmax(260px, 54dvh) minmax(0, 1fr);
-    }
-  }
+.btn {
+  appearance: none; border: 0;
+  height: 40px; padding: 0 16px; border-radius: var(--radius-control);
+  font-weight: 600; font-size: 14px;
+  background: var(--primary); color: var(--primary-ink);
+  transition: transform 120ms var(--ease), background 150ms;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.btn.accent { background: var(--accent); color: #fff; }
+.btn.ghost {
+  background: transparent; color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn.soft {
+  background: var(--accent-soft); color: var(--accent-ink);
+  border: 1px solid var(--accent-track);
+}
 
-  .machine-panel {
-    position: relative;
-    display: flex; align-items: center; justify-content: center;
-    min-height: 0;
-  }
-  .machine {
-    position: relative;
-    width: min(100%, 380px);
-    height: min(100%, 520px);
-    aspect-ratio: 3 / 4.15;
-    max-height: 100%;
-  }
-  .machine-svg {
-    position: absolute; inset: 0; width: 100%; height: 100%;
-    filter: drop-shadow(0 22px 36px rgba(0,0,0,0.45));
-    pointer-events: none;
-  }
-  #capCanvas {
-    position: absolute;
-    left: 12%; top: 4%; width: 76%; height: 50%;
-    border-radius: 50% 50% 46% 46% / 62% 62% 38% 38%;
-    z-index: 2;
-  }
-  .glass-shine {
-    position: absolute;
-    left: 12%; top: 4%; width: 76%; height: 50%;
-    border-radius: 50% 50% 46% 46% / 62% 62% 38% 38%;
-    background:
-      linear-gradient(115deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.08) 18%, transparent 36%),
-      radial-gradient(circle at 70% 80%, rgba(94,240,255,0.12), transparent 45%);
-    box-shadow:
-      inset 0 0 0 2px rgba(255,255,255,0.35),
-      inset 0 -18px 40px rgba(20,10,40,0.18),
-      0 0 0 1px rgba(255,255,255,0.12);
-    pointer-events: none; z-index: 3;
-  }
-  .eject-layer {
-    position: absolute; left: 0; right: 0; top: 0; bottom: 0;
-    pointer-events: none; z-index: 6; overflow: visible;
-  }
-  .eject-cap {
-    position: absolute; left: 50%; top: 52%;
-    width: 144px; height: 172px; margin-left: -72px;
-    border-radius: 50% 50% 48% 48% / 58% 58% 42% 42%;
-    display: grid; place-items: center;
-    font-weight: 900; font-size: 1.15rem; text-align: center;
-    color: #2a1408; padding: 0.5rem;
-    opacity: 0; transform: translateY(0) scale(0.35);
-    background: radial-gradient(circle at 30% 28%, #fff9e6, transparent 42%),
-                linear-gradient(165deg, #fff3b0, #ffd56a 45%, #e8a800 100%) !important;
-    border: 3px solid rgba(255,255,255,0.85);
-    box-shadow:
-      0 20px 40px rgba(0,0,0,0.5),
-      0 0 40px rgba(255,213,106,0.55),
-      inset -5px -8px 14px rgba(120,70,0,0.25);
-    z-index: 12;
-  }
-  .eject-cap.show {
-    animation: ejectOut 3.2s cubic-bezier(.12,1.15,.28,1) forwards;
-  }
-  @keyframes ejectOut {
-    0%   { opacity: 0; transform: translateY(30px) scale(0.3) rotate(-20deg); }
-    14%  { opacity: 1; transform: translateY(-110px) scale(1.15) rotate(10deg); }
-    35%  { opacity: 1; transform: translateY(-70px) scale(1.05) rotate(-3deg); }
-    75%  { opacity: 1; transform: translateY(-78px) scale(1.08) rotate(0); }
-    100% { opacity: 0; transform: translateY(-120px) scale(0.95) rotate(4deg); }
-  }
+.kpis {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0; margin-bottom: 20px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.kpi {
+  padding: 14px 16px;
+  border-right: 1px solid var(--rule);
+}
+.kpi:last-child { border-right: 0; }
+.kpi .label { font-size: var(--fs-small); color: var(--muted); margin-bottom: 4px; }
+.kpi .value { font-size: var(--fs-kpi); font-weight: 600; letter-spacing: -0.02em; }
+.kpi .cap { font-size: var(--fs-small); color: var(--muted); margin-top: 2px; }
 
-  .controls {
-    position: absolute; left: 12%; right: 12%; bottom: 7%;
-    z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
-  }
-  .draw-btn {
-    width: 100%; padding: 0.85rem 0.5rem; font-size: 1.05rem;
-  }
-  .hint { font-size: 0.7rem; opacity: 0.75; text-align: center; }
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--gap);
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .kpi:nth-child(2) { border-right: 0; }
+  .kpi:nth-child(1), .kpi:nth-child(2) { border-bottom: 1px solid var(--rule); }
+}
 
-  .side {
-    display: flex; flex-direction: column; gap: 0.5rem; min-height: 0;
-  }
-  .card {
-    background: rgba(255,255,255,0.07);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 16px;
-    padding: 0.65rem 0.75rem;
-    min-height: 0;
-  }
-  .card h3 {
-    margin: 0 0 0.4rem; font-size: 0.78rem; letter-spacing: 0.08em;
-    color: var(--cyan); text-transform: uppercase;
-  }
-  .winners { flex: 1.15; display: flex; flex-direction: column; }
-  .winner-list {
-    list-style: none; margin: 0; padding: 0;
-    display: flex; flex-direction: column; gap: 0.35rem;
-    overflow: auto; flex: 1;
-  }
-  .winner-list li {
-    display: flex; align-items: center; gap: 0.5rem;
-    padding: 0.5rem 0.55rem; border-radius: 12px;
-    background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.08);
-  }
-  .winner-list li.filled {
-    animation: popIn .5s cubic-bezier(.2,1.35,.3,1) both;
-    background: linear-gradient(90deg, rgba(255,213,106,0.18), rgba(0,0,0,0.28));
-    border-color: rgba(255,213,106,0.35);
-  }
-  @keyframes popIn {
-    from { opacity: 0; transform: scale(.7) translateY(10px); }
-    to { opacity: 1; transform: none; }
-  }
-  .badge {
-    width: 1.55rem; height: 1.55rem; border-radius: 50%;
-    display: grid; place-items: center; font-weight: 800; font-size: 0.75rem;
-    color: #2a1040; background: linear-gradient(135deg, var(--gold), #fff);
-    flex: 0 0 auto;
-  }
-  .pool { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-  .chips {
-    display: flex; flex-wrap: wrap; gap: 0.3rem;
-    overflow: auto; flex: 1; align-content: flex-start;
-  }
-  .chip {
-    display: inline-flex; align-items: center; gap: 0.28rem;
-    padding: 0.25rem 0.48rem; border-radius: 999px;
-    font-size: 0.72rem; background: rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.1);
-    transition: .35s;
-  }
-  .chip .n {
-    min-width: 1.05rem; height: 1.05rem; border-radius: 50%;
-    display: grid; place-items: center; font-weight: 800; font-size: 0.65rem; color: #1a1020;
-  }
-  .chip.out { opacity: 0.28; filter: grayscale(1); text-decoration: line-through; }
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.panel-head {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 14px; border-bottom: 1px solid var(--rule);
+}
+.panel-head h2 {
+  margin: 0; font-size: var(--fs-section); font-weight: 600; flex: 1;
+}
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.field {
+  display: flex; align-items: center; gap: 8px;
+  font-size: var(--fs-small); color: var(--muted);
+}
+.field input[type="number"] {
+  width: 72px; height: var(--control-height);
+  border: 1px solid var(--control); border-radius: var(--radius-control);
+  padding: 0 10px; background: var(--surface);
+  font-variant-numeric: tabular-nums;
+}
+.search {
+  height: var(--control-height); width: min(220px, 100%);
+  border: 1px solid var(--control); border-radius: var(--radius-control);
+  padding: 0 10px; background: var(--surface);
+}
 
-  /* —— Result —— */
-  #result {
-    align-items: center; justify-content: center; text-align: center; gap: 0.85rem;
-  }
-  #result h1 {
-    margin: 0; font-size: clamp(1.4rem, 5vw, 2rem);
-    background: linear-gradient(90deg, var(--gold), #fff, var(--cyan));
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-  .result-list {
-    width: min(100%, 420px);
-    display: flex; flex-direction: column; gap: 0.45rem;
-  }
-  .result-item {
-    display: flex; align-items: center; gap: 0.7rem;
-    padding: 0.75rem 1rem; border-radius: 16px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.16);
-    text-align: left;
-    animation: popIn .55s cubic-bezier(.2,1.35,.3,1) both;
-  }
-  .result-item .dot {
-    width: 2.4rem; height: 2.8rem; border-radius: 50% 50% 48% 48% / 58% 58% 42% 42%;
-    flex: 0 0 auto;
-    box-shadow: inset -3px -4px 8px rgba(0,0,0,0.25), 0 4px 10px rgba(0,0,0,0.3);
-  }
-  .result-item .nm { font-weight: 800; font-size: 1.1rem; }
-  .result-item .rk { font-size: 0.75rem; opacity: 0.7; }
-  .result-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; margin-top: 0.4rem; }
+.roster { list-style: none; margin: 0; padding: 0; max-height: min(62vh, 640px); overflow: auto; }
+.person {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 148px;
+  gap: 10px; align-items: center;
+  min-height: var(--row-height);
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.person:last-child { border-bottom: 0; }
+.person.selected { background: var(--accent-soft); }
+.person.out { opacity: 0.45; }
+.person input[type="checkbox"] {
+  width: 18px; height: 18px; accent-color: var(--accent);
+}
+.person .name {
+  font-weight: 500; font-size: 14px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.person .meta { font-size: var(--fs-small); color: var(--muted); }
+.weight {
+  display: grid; grid-template-columns: 1fr 28px; gap: 8px; align-items: center;
+}
+.weight input[type="range"] {
+  width: 100%; accent-color: var(--accent);
+  background: transparent;
+}
+.weight .wval {
+  font-size: var(--fs-small); font-weight: 600; color: var(--accent-ink);
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+.ladder {
+  display: flex; gap: 2px; margin-top: 4px;
+}
+.ladder i {
+  flex: 1; height: 4px; border-radius: 1px;
+  background: var(--accent-track);
+}
+.ladder i.on { background: var(--accent); }
+.person:not(.selected) .ladder i.on { background: var(--control); }
 
-  canvas#fx {
-    position: fixed; inset: 0; width: 100%; height: 100%;
-    pointer-events: none; z-index: 40;
-  }
+.side .panel { margin-bottom: 16px; }
+.side .panel:last-child { margin-bottom: 0; }
+.help {
+  padding: 14px 16px; color: var(--muted); font-size: var(--fs-small); line-height: 1.55;
+}
+.help strong { color: var(--text); font-weight: 600; }
+.odds-list { list-style: none; margin: 0; padding: 0; }
+.odds-list li {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 10px 14px; border-bottom: 1px solid var(--rule);
+  font-size: 13px;
+}
+.odds-list li:last-child { border-bottom: 0; }
+.odds-list .pct { font-variant-numeric: tabular-nums; color: var(--accent-ink); font-weight: 600; }
 
-  .win-banner {
-    position: fixed;
-    inset: 0;
-    z-index: 80;
-    pointer-events: none;
-    display: grid;
-    place-items: center;
-    opacity: 0;
-    visibility: hidden;
-  }
-  .win-banner.on {
-    visibility: visible;
-    animation: bannerFly 3.4s cubic-bezier(.16,.85,.25,1) forwards;
-  }
-  .win-banner .board {
-    position: relative;
-    width: min(92vw, 540px);
-    padding: 1.15rem 1.5rem 1.35rem;
-    border-radius: 22px;
-    text-align: center;
-    color: #2a1408;
-    background: linear-gradient(165deg, #fff9e0 0%, #ffe07a 42%, #f5b820 100%);
-    border: 5px solid #ffffff;
-    outline: 4px solid #ff4f9a;
-    box-shadow:
-      0 20px 60px rgba(0,0,0,0.55),
-      0 0 0 10px rgba(255,213,106,0.25),
-      0 0 100px rgba(255,213,106,0.55);
-  }
-  .win-banner .tag {
-    font-size: clamp(0.85rem, 2.8vw, 1rem);
-    font-weight: 900;
-    letter-spacing: 0.35em;
-    color: #a85a00;
-    margin-bottom: 0.2rem;
-  }
-  .win-banner .who {
-    font-size: clamp(2.6rem, 12vw, 4.2rem);
-    font-weight: 900;
-    line-height: 1.05;
-    letter-spacing: 0.03em;
-    color: #1a1028;
-    text-shadow: 0 3px 0 rgba(255,255,255,0.75), 0 8px 24px rgba(168,90,0,0.35);
-    word-break: break-word;
-  }
-  .win-banner .spark {
-    position: absolute; inset: -30vmax;
-    background:
-      radial-gradient(circle at 50% 45%, rgba(255,213,106,0.55), transparent 42%),
-      radial-gradient(circle at 30% 40%, rgba(255,79,154,0.35), transparent 35%),
-      radial-gradient(circle at 70% 50%, rgba(94,240,255,0.3), transparent 35%);
-    z-index: -1;
-  }
-  @keyframes bannerFly {
-    0%   { opacity: 0; transform: scale(0.4) translateY(60px); }
-    10%  { opacity: 1; transform: scale(1.12) translateY(0); }
-    78%  { opacity: 1; transform: scale(1) translateY(-8px); }
-    100% { opacity: 0; transform: scale(0.95) translateY(-90px); }
-  }
+/* Draw stage */
+.stage-wrap {
+  display: grid; gap: 20px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+}
+@media (max-width: 860px) { .stage-wrap { grid-template-columns: 1fr; } }
 
-  .toast {
-    position: fixed; left: 50%; bottom: calc(1.1rem + var(--safe-b));
-    transform: translateX(-50%) translateY(16px);
-    background: rgba(20,12,40,0.94); border: 1px solid rgba(255,255,255,0.22);
-    padding: 0.55rem 1rem; border-radius: 999px; font-size: 0.85rem;
-    opacity: 0; pointer-events: none; z-index: 50; transition: .28s;
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.stage {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  min-height: 360px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 28px 20px; text-align: center; position: relative; overflow: hidden;
+}
+.stage-label { font-size: var(--fs-small); color: var(--muted); margin-bottom: 12px; }
+.reel {
+  width: min(100%, 420px);
+  height: 88px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--raised);
+  display: grid; place-items: center;
+  position: relative; overflow: hidden;
+}
+.reel::before, .reel::after {
+  content: ""; position: absolute; left: 0; right: 0; height: 28px; pointer-events: none; z-index: 2;
+}
+.reel::before { top: 0; background: var(--raised); opacity: 0.85; }
+.reel::after { bottom: 0; background: var(--raised); opacity: 0.85; }
+.reel-name {
+  font-size: clamp(28px, 6vw, 40px); font-weight: 700; letter-spacing: -0.03em;
+  transition: opacity 80ms linear, transform 80ms linear;
+}
+.reel.spinning .reel-name { opacity: 0.85; }
+.reel.reveal {
+  background: var(--accent-soft);
+  border-color: var(--accent-track);
+}
+.reel.reveal .reel-name { color: var(--accent-ink); }
+.stage-hint { margin-top: 16px; color: var(--muted); font-size: var(--fs-small); min-height: 1.4em; }
+.stage-actions { margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 
-  .flash {
-    position: fixed; inset: 0; pointer-events: none; z-index: 35;
-    background: radial-gradient(circle at 50% 40%, rgba(255,255,255,0.55), transparent 55%);
-    opacity: 0;
+.pulse-bar {
+  position: absolute; left: 0; right: 0; top: 0; height: 3px;
+  background: var(--accent-track); transform-origin: left center; transform: scaleX(0);
+}
+.pulse-bar.run { animation: pulse 1.8s var(--ease) forwards; }
+@keyframes pulse { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+.winners-panel ol { list-style: none; margin: 0; padding: 0; }
+.winners-panel li {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 48px; padding: 8px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.winners-panel li:last-child { border-bottom: 0; }
+.winners-panel li.empty { color: var(--muted); }
+.winners-panel .rank {
+  width: 28px; height: 28px; border-radius: 6px;
+  background: var(--raised); color: var(--muted);
+  display: grid; place-items: center; font-size: 12px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.winners-panel li.filled .rank {
+  background: var(--accent); color: #fff;
+}
+.winners-panel li.filled { background: var(--accent-soft); animation: popIn 420ms var(--ease) both; }
+.winners-panel .wn { font-weight: 600; }
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Result */
+.result-hero {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-card); padding: 28px 20px; text-align: center; margin-bottom: 20px;
+}
+.result-hero h1 { margin: 0 0 8px; font-size: clamp(24px, 5vw, 32px); }
+.result-hero p { margin: 0; color: var(--muted); }
+.result-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px; margin-bottom: 24px;
+}
+.result-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-card); padding: 16px;
+}
+.result-card .rk { font-size: var(--fs-small); color: var(--muted); margin-bottom: 6px; }
+.result-card .nm { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+.result-card:first-child {
+  background: var(--accent-soft); border-color: var(--accent-track);
+}
+.result-card:first-child .nm { color: var(--accent-ink); }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(20px + var(--safe-b));
+  transform: translateX(-50%) translateY(12px);
+  background: var(--text); color: #fff; padding: 10px 14px;
+  border-radius: 8px; font-size: 13px; opacity: 0; pointer-events: none;
+  transition: opacity 180ms, transform 180ms var(--ease); z-index: 40;
+  max-width: min(90vw, 360px); text-align: center;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
-  .flash.on { animation: flashBang .45s ease-out; }
-  @keyframes flashBang { 0%{opacity:.7} 100%{opacity:0} }
+  .pulse-bar.run { animation: none; transform: scaleX(1); }
+  .winners-panel li.filled { animation: none; }
+}
 </style>
 </head>
 <body>
-  <div id="home" class="screen active">
-    <div class="logo-wrap"><canvas id="logoCanvas" width="560" height="560"></canvas></div>
-    <h1>扭蛋抽籤機</h1>
-    <p class="sub">票數 = 膠囊數量 · 共抽出 5 人 · 同一人只可中獎一次 · 中獎後剩餘膠囊即時作廢</p>
-    <div class="stat-row">
-      <span class="pill">參加者 <b id="homePeople">0</b></span>
-      <span class="pill">總票數 <b id="homeTickets">0</b></span>
-      <span class="pill">抽出 <b>5</b> 人</span>
-    </div>
-    <button class="btn" id="startBtn" type="button">開始抽籤</button>
-  </div>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="mark" aria-hidden="true">抽</span>扭蛋抽籤</div>
+    <div class="spacer"></div>
+    <button type="button" class="icon-btn" id="muteBtn" aria-pressed="false" aria-label="靜音切換">聲音開</button>
+  </header>
 
-  <div id="play" class="screen">
-    <div class="topbar">
-      <h2>🎰 扭蛋進行中</h2>
-      <div class="meters">
-        <span>膠囊 <b id="ticketCount">0</b></span>
-        <span>已抽 <b id="drawnCount">0</b>/5</span>
-      </div>
-    </div>
-    <div class="play-grid">
-      <div class="machine-panel">
-        <div class="machine" id="machine">
-          <svg class="machine-svg" viewBox="0 0 300 420" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-            <defs>
-              <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#ff7eb3"/>
-                <stop offset="45%" stop-color="#e83a86"/>
-                <stop offset="100%" stop-color="#8f1450"/>
-              </linearGradient>
-              <linearGradient id="domeStroke" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"/>
-                <stop offset="100%" stop-color="#9adfff" stop-opacity="0.55"/>
-              </linearGradient>
-              <radialGradient id="domeFill" cx="40%" cy="30%" r="70%">
-                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
-                <stop offset="55%" stop-color="#a8d8ff" stop-opacity="0.06"/>
-                <stop offset="100%" stop-color="#1a1030" stop-opacity="0.12"/>
-              </radialGradient>
-              <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="6" stdDeviation="6" flood-opacity="0.35"/>
-              </filter>
-            </defs>
-            <!-- base -->
-            <ellipse cx="150" cy="398" rx="108" ry="12" fill="rgba(0,0,0,0.35)"/>
-            <!-- body -->
-            <path d="M42 210 C42 198 55 190 70 190 L230 190 C245 190 258 198 258 210 L258 360 C258 378 240 392 218 392 L82 392 C60 392 42 378 42 360 Z"
-                  fill="url(#bodyGrad)" stroke="rgba(255,255,255,0.28)" stroke-width="3" filter="url(#soft)"/>
-            <!-- rim under dome -->
-            <ellipse cx="150" cy="208" rx="108" ry="16" fill="#5a1238" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
-            <ellipse cx="150" cy="204" rx="100" ry="12" fill="#2a0c1c"/>
-            <!-- dome glass shell -->
-            <path d="M50 205 C50 95 95 28 150 28 C205 28 250 95 250 205"
-                  fill="url(#domeFill)" stroke="url(#domeStroke)" stroke-width="4"/>
-            <!-- slot -->
-            <rect x="95" y="232" width="110" height="42" rx="10" fill="#140a1c" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-            <text x="150" y="258" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-size="11" font-family="sans-serif">出口</text>
-            <!-- knob -->
-            <circle cx="220" cy="300" r="22" fill="#ffd56a" stroke="rgba(255,255,255,0.45)" stroke-width="3"/>
-            <circle cx="220" cy="300" r="8" fill="#fff6c8"/>
-            <rect x="216" y="282" width="8" height="18" rx="3" fill="#c98900"/>
-          </svg>
-          <canvas id="capCanvas" width="420" height="340"></canvas>
-          <div class="glass-shine"></div>
-          <div class="eject-layer">
-            <div class="eject-cap" id="ejectCap"></div>
-          </div>
-          <div class="controls">
-            <button class="btn draw-btn" id="drawBtn" type="button">扭一顆！</button>
-            <div class="hint" id="hint">膠囊會全部彈起碰撞，平靜後抽出一人</div>
-          </div>
+  <main class="canvas">
+    <!-- SETUP -->
+    <section id="setup" class="screen active" aria-label="設定抽籤">
+      <div class="title-row">
+        <div>
+          <h1>加權抽籤台</h1>
+          <p class="sub">勾選參加者、調機會倍率，一次抽出多名得獎者（唔重複）。</p>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn accent" id="startBtn">開始抽籤</button>
         </div>
       </div>
-      <aside class="side">
-        <section class="card winners">
-          <h3>中獎名單</h3>
-          <ol class="winner-list" id="winners"></ol>
-        </section>
-        <section class="card pool">
-          <h3>票池（一票一膠囊）</h3>
-          <div class="chips" id="chips"></div>
-        </section>
-      </aside>
-    </div>
-  </div>
 
-  <div id="result" class="screen">
-    <h1>🎉 抽籤完成</h1>
-    <p class="sub" style="opacity:.8;margin:0">五位幸運兒已就位</p>
-    <div class="result-list" id="resultList"></div>
-    <div class="result-actions">
-      <button class="btn" id="againBtn" type="button">再來一次</button>
-      <button class="btn ghost" id="homeBtn" type="button">回首頁</button>
-    </div>
-  </div>
+      <div class="kpis" aria-live="polite">
+        <div class="kpi"><div class="label">名單</div><div class="value num" id="kpiTotal">0</div><div class="cap">預設名冊</div></div>
+        <div class="kpi"><div class="label">已選</div><div class="value num" id="kpiSelected">0</div><div class="cap">可抽池</div></div>
+        <div class="kpi"><div class="label">權重總和</div><div class="value num" id="kpiWeight">0</div><div class="cap">倍率加總</div></div>
+        <div class="kpi"><div class="label">抽出人數</div><div class="value num" id="kpiDraw">1</div><div class="cap">本輪目標</div></div>
+      </div>
 
-  <canvas id="fx"></canvas>
-  <div class="flash" id="flash"></div>
-  <div class="toast" id="toast"></div>
+      <div class="layout">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>參加者</h2>
+            <div class="toolbar">
+              <label class="field">抽出
+                <input type="number" id="drawCount" min="1" step="1" value="1" inputmode="numeric" aria-describedby="drawHelp" />
+                人
+              </label>
+              <input type="search" class="search" id="filter" placeholder="搜尋名字" aria-label="搜尋名字" />
+              <button type="button" class="btn soft" id="selectAll" style="height:36px">全選</button>
+              <button type="button" class="btn ghost" id="selectNone" style="height:36px">清空</button>
+            </div>
+          </div>
+          <p id="drawHelp" class="help" style="border-bottom:1px solid var(--rule)">每人右側拉桿 = 機會倍率 1–10（預設 1）。加權隨機；同一輪唔會抽中同一人兩次。</p>
+          <ul class="roster" id="roster" role="list"></ul>
+        </div>
+
+        <aside class="side">
+          <div class="panel">
+            <div class="panel-head"><h2>預計機率</h2></div>
+            <ul class="odds-list" id="odds"></ul>
+            <p class="help">機率按目前勾選同倍率即時估算；抽出後該人離開池，餘下機率會重算。</p>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>點用</h2></div>
+            <p class="help"><strong>1.</strong> 設抽出人數。<br /><strong>2.</strong> 勾選參加者，調倍率。<br /><strong>3.</strong> 按「開始抽籤」進入轉動畫面。<br /><strong>4.</strong> 現場可靜音；系統會跟從減少動態偏好。</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- DRAW -->
+    <section id="draw" class="screen" aria-label="抽籤進行中">
+      <div class="title-row">
+        <div>
+          <h1>抽籤進行中</h1>
+          <p class="sub" id="drawSub">準備就緒</p>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn ghost" id="backSetup">返回設定</button>
+          <button type="button" class="btn accent" id="drawNext">扭下一顆</button>
+        </div>
+      </div>
+
+      <div class="stage-wrap">
+        <div class="stage" id="stage">
+          <div class="pulse-bar" id="pulse"></div>
+          <div class="stage-label" id="stageLabel">等待開始</div>
+          <div class="reel" id="reel" aria-live="assertive">
+            <div class="reel-name" id="reelName">—</div>
+          </div>
+          <div class="stage-hint" id="stageHint">按「扭下一顆」開始</div>
+          <div class="stage-actions">
+            <button type="button" class="btn accent" id="drawNext2">扭下一顆</button>
+            <button type="button" class="btn ghost" id="skipAnim" hidden>略過動畫</button>
+          </div>
+        </div>
+        <div class="panel winners-panel">
+          <div class="panel-head"><h2>中獎名單</h2><span class="meta num" id="winCount">0 / 0</span></div>
+          <ol id="winnerList"></ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESULT -->
+    <section id="result" class="screen" aria-label="抽籤結果">
+      <div class="result-hero">
+        <h1>抽籤完成</h1>
+        <p id="resultSub">得獎者已抽出</p>
+      </div>
+      <div class="result-grid" id="resultGrid"></div>
+      <div class="actions" style="justify-content:center;margin:0">
+        <button type="button" class="btn accent" id="againBtn">再來一輪</button>
+        <button type="button" class="btn ghost" id="homeBtn">返回設定</button>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
 
 <script>
-const ENTRIES = [
-  ["Labubu", 5], ["Sam", 5], ["Nicole", 3], ["木木", 2], ["Ryan", 3],
-  ["Silvia", 2], ["Yan", 2], ["Barry", 2], ["George", 1], ["Candy", 1],
-  ["Ramsey", 1], ["Jane", 1], ["Thomas", 1], ["Fong", 1], ["Carlos", 1],
-  ["Matthew", 2], ["Oscar", 2],
-];
-const MAX_WIN = 5;
-const COLORS = [
-  "#ff6b9d","#3de7ff","#ffd166","#9b5cff","#7CFFB2",
-  "#FF8A5B","#6EC1FF","#F72585","#B8F2E6","#FFBE0B",
-  "#FB5607","#8338EC","#06D6A0","#EF476F","#118AB2",
-  "#FFD6FF","#90DBF4"
-];
+(function () {
+  const ROSTER = [
+    "王子","莫大師","小擁","卡路士","Siky","Fong","David Ip","賢","KAHOU","Ryan",
+    "Sam","Horace","George","木木","隆爺","Candy","nC","Nettie","Ramsey","睿",
+    "Silvia","Yan","Guida","Jane","Labubu","陳Sir","Thomas","Oscar","Keira","卷尺"
+  ];
 
-const TOTAL_TICKETS = ENTRIES.reduce((s, [, n]) => s + n, 0);
-document.getElementById("homePeople").textContent = ENTRIES.length;
-document.getElementById("homeTickets").textContent = TOTAL_TICKETS;
+  /** @type {{name:string, selected:boolean, weight:number}[]} */
+  const people = ROSTER.map((name) => ({ name, selected: true, weight: 1 }));
 
-let remaining = new Map();
-let winners = [];
-let busy = false;
-let audioCtx = null;
-/** @type {Capsule[]} */
-let capsules = [];
-let phys = { running: true, mode: "idle", tumbleUntil: 0, settleFrames: 0 };
-let raf = 0;
+  const state = {
+    drawCount: 1,
+    winners: /** @type {string[]} */ ([]),
+    pool: /** @type {{name:string, weight:number}[]} */ ([]),
+    busy: false,
+    muted: false,
+    filter: "",
+    audio: /** @type {AudioContext|null} */ (null),
+    spinTimer: 0,
+  };
 
-class Capsule {
-  constructor(name, color, x, y, r) {
-    this.name = name;
-    this.color = color;
-    this.x = x; this.y = y;
-    this.vx = (Math.random() - 0.5) * 0.6;
-    this.vy = (Math.random() - 0.5) * 0.6;
-    this.r = r;
-    this.rot = Math.random() * Math.PI * 2;
-    this.vr = (Math.random() - 0.5) * 0.05;
-    this.alive = true;
-    this.fade = 1;
+  const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const el = (id) => document.getElementById(id);
+
+  function toast(msg) {
+    const t = el("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toast._tm);
+    toast._tm = setTimeout(() => t.classList.remove("show"), 2200);
   }
-  label() {
-    return this.name.length <= 2 ? this.name : this.name.slice(0, 2);
-  }
-}
 
-function toast(msg) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  clearTimeout(toast._tm);
-  toast._tm = setTimeout(() => t.classList.remove("show"), 2200);
-}
-
-function ensureAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === "suspended") audioCtx.resume();
-}
-function tone(freq, dur, type = "sine", gain = 0.07, when = 0, slideTo = null) {
-  ensureAudio();
-  const t0 = audioCtx.currentTime + when;
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  const f = audioCtx.createBiquadFilter();
-  f.type = "lowpass"; f.frequency.value = 2800;
-  o.type = type;
-  o.frequency.setValueAtTime(freq, t0);
-  if (slideTo != null) o.frequency.exponentialRampToValueAtTime(Math.max(40, slideTo), t0 + dur);
-  g.gain.setValueAtTime(0.0001, t0);
-  g.gain.exponentialRampToValueAtTime(gain, t0 + 0.015);
-  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  o.connect(f); f.connect(g); g.connect(audioCtx.destination);
-  o.start(t0); o.stop(t0 + dur + 0.03);
-}
-function noiseBurst(dur = 0.12, gain = 0.04, when = 0) {
-  ensureAudio();
-  const t0 = audioCtx.currentTime + when;
-  const n = audioCtx.createBuffer(1, audioCtx.sampleRate * dur, audioCtx.sampleRate);
-  const d = n.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
-  const s = audioCtx.createBufferSource(); s.buffer = n;
-  const g = audioCtx.createGain();
-  const f = audioCtx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 900; f.Q.value = 0.7;
-  g.gain.setValueAtTime(gain, t0);
-  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  s.connect(f); f.connect(g); g.connect(audioCtx.destination);
-  s.start(t0);
-}
-function sfxTumble() {
-  for (let i = 0; i < 14; i++) {
-    noiseBurst(0.05 + Math.random() * 0.04, 0.03 + Math.random() * 0.025, i * 0.07);
-    tone(90 + Math.random() * 70, 0.05, "triangle", 0.03, i * 0.07);
+  function showScreen(id) {
+    document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("active", s.id === id));
   }
-}
-function sfxPop() {
-  noiseBurst(0.08, 0.05);
-  tone(420, 0.15, "square", 0.05, 0, 720);
-  tone(880, 0.22, "sine", 0.05, 0.08);
-}
-function sfxWinFanfare() {
-  [523, 659, 784, 1046].forEach((n, i) => tone(n, 0.22, "sine", 0.06, i * 0.09));
-}
-function sfxDone() {
-  [392, 494, 587, 740, 880, 1175].forEach((n, i) => tone(n, 0.26, "triangle", 0.055, i * 0.1));
-}
 
-function showScreen(id) {
-  document.querySelectorAll(".screen").forEach(el => el.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  if (id === "play") {
-    requestAnimationFrame(() => {
-      resizeCapCanvas();
-      if (!raf) loop();
-    });
+  /* —— Audio (Web Audio, unlock on gesture) —— */
+  function ensureAudio() {
+    if (state.muted) return null;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!state.audio) state.audio = new AC();
+    if (state.audio.state === "suspended") state.audio.resume();
+    return state.audio;
   }
-}
-
-function rebuildAll() {
-  remaining = new Map(ENTRIES.map(([n, c]) => [n, c]));
-  winners = [];
-  busy = false;
-  buildCapsules();
-  renderChips();
-  renderWinners();
-  updateMeta();
-  document.getElementById("drawBtn").disabled = false;
-  document.getElementById("hint").textContent = "膠囊會全部彈起碰撞，平靜後抽出一人";
-  document.getElementById("ejectCap").classList.remove("show");
-  phys.mode = "idle";
-}
-
-function buildCapsules() {
-  const canvas = document.getElementById("capCanvas");
-  // ensure readable pixel size before packing
-  if (canvas.width < 200) {
-    canvas.width = 420;
-    canvas.height = 340;
+  function tone(freq, dur, type, gain, when, slideTo) {
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const t0 = ctx.currentTime + (when || 0);
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    const f = ctx.createBiquadFilter();
+    f.type = "lowpass"; f.frequency.value = 2600;
+    o.type = type || "sine";
+    o.frequency.setValueAtTime(freq, t0);
+    if (slideTo != null) o.frequency.exponentialRampToValueAtTime(Math.max(40, slideTo), t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain || 0.06, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(f); f.connect(g); g.connect(ctx.destination);
+    o.start(t0); o.stop(t0 + dur + 0.02);
   }
-  const W = canvas.width, H = canvas.height;
-  capsules = [];
-  const total = ENTRIES.reduce((s, [, n]) => s + n, 0);
-  // size so all tickets fit visibly (one capsule per ticket)
-  const r = Math.max(11, Math.min(18, Math.floor(Math.sqrt((W * H * 0.28) / total) * 0.55)));
-  // place tickets person-by-person in columns so proportions are obvious
-  const cx = W / 2, cy = H * 0.58;
-  const rx = W * 0.42, ry = H * 0.42;
-  let placed = 0;
-  ENTRIES.forEach(([name, count], i) => {
-    const color = COLORS[i % COLORS.length];
-    for (let k = 0; k < count; k++) {
-      // fan around bottom of dome by ticket index
-      const t = (placed + 0.5) / total;
-      const ang = Math.PI * (0.15 + 0.7 * t); // bottom arc-ish
-      const rad = 0.35 + 0.55 * ((placed % 5) / 5);
-      let x = cx + Math.cos(ang) * rx * rad * (0.7 + (k % 3) * 0.08);
-      let y = cy + Math.sin(ang) * ry * rad * 0.85 + (k * 2);
-      // jitter small but keep inside
-      x += (Math.random() - 0.5) * r * 0.4;
-      y += (Math.random() - 0.5) * r * 0.4;
-      if (!insideDome(x, y, r, W, H)) {
-        x = cx + (Math.random() - 0.5) * rx * 1.2;
-        y = cy + Math.random() * ry * 0.9;
-      }
-      const cap = new Capsule(name, color, x, y, r + (Math.random() * 2 - 1));
-      capsules.push(cap);
-      placed++;
-    }
-  });
-  // assert exact ticket count
-  if (capsules.length !== total) {
-    console.error("capsule count mismatch", capsules.length, total);
+  function noise(dur, gain, when) {
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const t0 = ctx.currentTime + (when || 0);
+    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const g = ctx.createGain();
+    const f = ctx.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 800; f.Q.value = 0.8;
+    g.gain.setValueAtTime(gain || 0.04, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(f); f.connect(g); g.connect(ctx.destination);
+    src.start(t0);
   }
-  // settle briefly so they pack without overlapping too hard
-  for (let n = 0; n < 40; n++) {
-    for (let i = 0; i < capsules.length; i++) {
-      for (let j = i + 1; j < capsules.length; j++) collide(capsules[i], capsules[j]);
-      resolveDome(capsules[i], W, H);
-      capsules[i].vx *= 0.5; capsules[i].vy *= 0.5;
+  function sfxStart() {
+    tone(392, 0.12, "triangle", 0.05);
+    tone(523, 0.16, "sine", 0.05, 0.08);
+  }
+  function sfxSpin() {
+    for (let i = 0; i < 10; i++) {
+      noise(0.04, 0.025, i * 0.08);
+      tone(180 + Math.random() * 120, 0.05, "triangle", 0.025, i * 0.08);
     }
   }
-}
-
-function insideDome(x, y, r, W, H) {
-  const cx = W / 2, cy = H * 0.55;
-  const rx = W * 0.46 - r, ry = H * 0.48 - r;
-  const nx = (x - cx) / rx, ny = (y - cy) / ry;
-  return nx * nx + ny * ny <= 1;
-}
-
-function resolveDome(c, W, H) {
-  const cx = W / 2, cy = H * 0.55;
-  const rx = W * 0.46 - c.r, ry = H * 0.48 - c.r;
-  let nx = (c.x - cx) / rx, ny = (c.y - cy) / ry;
-  const d2 = nx * nx + ny * ny;
-  if (d2 > 1) {
-    const d = Math.sqrt(d2);
-    nx /= d; ny /= d;
-    c.x = cx + nx * rx;
-    c.y = cy + ny * ry;
-    // reflect velocity along normal
-    const nwx = nx / rx, nwy = ny / ry;
-    const len = Math.hypot(nwx, nwy) || 1;
-    const ux = nwx / len, uy = nwy / len;
-    const dot = c.vx * ux + c.vy * uy;
-    if (dot > 0) {
-      c.vx -= 1.7 * dot * ux;
-      c.vy -= 1.7 * dot * uy;
-    }
-    c.vx *= 0.92; c.vy *= 0.92;
+  function sfxReveal() {
+    tone(523, 0.18, "sine", 0.06);
+    tone(659, 0.2, "sine", 0.055, 0.09);
+    tone(784, 0.28, "triangle", 0.05, 0.18);
   }
-}
+  function sfxDone() {
+    [392, 494, 587, 740, 880].forEach((n, i) => tone(n, 0.22, "triangle", 0.05, i * 0.09));
+  }
 
-function collide(a, b) {
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const dist = Math.hypot(dx, dy) || 0.001;
-  const min = a.r + b.r;
-  if (dist >= min) return false;
-  const nx = dx / dist, ny = dy / dist;
-  const overlap = (min - dist) / 2;
-  a.x -= nx * overlap; a.y -= ny * overlap;
-  b.x += nx * overlap; b.y += ny * overlap;
-  const dvx = a.vx - b.vx, dvy = a.vy - b.vy;
-  const vn = dvx * nx + dvy * ny;
-  if (vn > 0) return true;
-  const impulse = vn * 0.92;
-  a.vx -= impulse * nx; a.vy -= impulse * ny;
-  b.vx += impulse * nx; b.vy += impulse * ny;
-  a.vr += (Math.random() - 0.5) * 0.08;
-  b.vr += (Math.random() - 0.5) * 0.08;
-  return true;
-}
+  /* —— Weighted draw without replacement —— */
+  function selectedPeople() {
+    return people.filter((p) => p.selected);
+  }
+  function pickWeighted(pool) {
+    const total = pool.reduce((s, p) => s + p.weight, 0);
+    if (total <= 0 || !pool.length) return null;
+    let r = Math.random() * total;
+    for (let i = 0; i < pool.length; i++) {
+      r -= pool[i].weight;
+      if (r <= 0) return i;
+    }
+    return pool.length - 1;
+  }
+  function drawOneFromPool() {
+    const idx = pickWeighted(state.pool);
+    if (idx == null) return null;
+    const [chosen] = state.pool.splice(idx, 1);
+    return chosen.name;
+  }
 
-function stepPhysics() {
-  const canvas = document.getElementById("capCanvas");
-  const W = canvas.width, H = canvas.height;
-  const live = capsules.filter(c => c.alive);
-  const tumbling = phys.mode === "tumble";
-  const settling = phys.mode === "settle";
-  const g = tumbling ? 0.08 : 0.22;
-  const damp = tumbling ? 0.995 : 0.985;
-
-  if (tumbling && performance.now() < phys.tumbleUntil) {
-    // inject energy so all bounce up
-    if (Math.random() < 0.35) {
-      live.forEach(c => {
-        c.vy -= 1.2 + Math.random() * 2.4;
-        c.vx += (Math.random() - 0.5) * 2.2;
+  /* —— Setup UI —— */
+  function renderRoster() {
+    const q = state.filter.trim().toLowerCase();
+    const list = el("roster");
+    list.innerHTML = "";
+    people.forEach((p, i) => {
+      if (q && !p.name.toLowerCase().includes(q)) return;
+      const li = document.createElement("li");
+      li.className = "person" + (p.selected ? " selected" : " out");
+      li.dataset.i = String(i);
+      const ladder = Array.from({ length: 10 }, (_, k) =>
+        `<i class="${k < p.weight ? "on" : ""}"></i>`
+      ).join("");
+      li.innerHTML = `
+        <input type="checkbox" ${p.selected ? "checked" : ""} aria-label="參加 ${p.name}" />
+        <div>
+          <div class="name">${p.name}</div>
+          <div class="ladder" aria-hidden="true">${ladder}</div>
+        </div>
+        <div class="weight">
+          <input type="range" min="1" max="10" step="1" value="${p.weight}"
+            aria-label="${p.name} 機會倍率" ${p.selected ? "" : "disabled"} />
+          <span class="wval num">${p.weight}×</span>
+        </div>`;
+      const cb = li.querySelector('input[type="checkbox"]');
+      const rg = li.querySelector('input[type="range"]');
+      cb.addEventListener("change", () => {
+        p.selected = cb.checked;
+        refreshSetup();
       });
-    }
-  } else if (tumbling) {
-    phys.mode = "settle";
-    phys.settleFrames = 0;
-  }
-
-  for (const c of live) {
-    c.vy += g;
-    c.vx *= damp; c.vy *= damp;
-    c.x += c.vx; c.y += c.vy;
-    c.rot += c.vr + c.vx * 0.01;
-    resolveDome(c, W, H);
-  }
-  for (let i = 0; i < live.length; i++) {
-    for (let j = i + 1; j < live.length; j++) collide(live[i], live[j]);
-  }
-
-  if (settling) {
-    phys.settleFrames++;
-    const energy = live.reduce((s, c) => s + c.vx * c.vx + c.vy * c.vy, 0);
-    if (energy < 8 || phys.settleFrames > 90) {
-      phys.mode = "calm";
-      live.forEach(c => { c.vx *= 0.3; c.vy *= 0.3; });
-    }
-  }
-
-  // fading out voided
-  capsules.forEach(c => {
-    if (!c.alive && c.fade > 0) {
-      c.fade -= 0.04;
-      c.y += 0.8;
-      c.r *= 0.985;
-    }
-  });
-}
-
-function drawCapsules() {
-  const canvas = document.getElementById("capCanvas");
-  const ctx = canvas.getContext("2d");
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0, 0, W, H);
-
-  // soft floor shadow inside dome
-  ctx.save();
-  ctx.beginPath();
-  ctx.ellipse(W / 2, H * 0.82, W * 0.38, H * 0.08, 0, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(0,0,0,0.18)";
-  ctx.fill();
-  ctx.restore();
-
-  // draw back-to-front by y
-  const list = capsules.filter(c => c.fade > 0.02).slice().sort((a, b) => a.y - b.y);
-  for (const c of list) {
-    ctx.save();
-    ctx.globalAlpha = Math.max(0, c.fade);
-    ctx.translate(c.x, c.y);
-    ctx.rotate(c.rot * 0.35);
-    // capsule body (egg)
-    const grd = ctx.createRadialGradient(-c.r * 0.35, -c.r * 0.45, c.r * 0.1, 0, 0, c.r * 1.2);
-    grd.addColorStop(0, "#ffffffcc");
-    grd.addColorStop(0.35, c.color);
-    grd.addColorStop(1, shade(c.color, -35));
-    ctx.beginPath();
-    ctx.ellipse(0, 0, c.r * 0.86, c.r * 1.05, 0, 0, Math.PI * 2);
-    ctx.fillStyle = grd;
-    ctx.fill();
-    // seam
-    ctx.beginPath();
-    ctx.ellipse(0, 0, c.r * 0.86, c.r * 1.05, 0, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(255,255,255,0.35)";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(-c.r * 0.78, 0);
-    ctx.quadraticCurveTo(0, c.r * 0.08, c.r * 0.78, 0);
-    ctx.strokeStyle = "rgba(0,0,0,0.18)";
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
-    // label
-    ctx.rotate(-c.rot * 0.35);
-    ctx.fillStyle = "rgba(20,10,30,0.85)";
-    ctx.font = `bold ${Math.max(9, c.r * 0.72)}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(c.label(), 0, 1);
-    ctx.restore();
-  }
-}
-
-function shade(hex, amt) {
-  const n = hex.replace("#", "");
-  const num = parseInt(n.length === 3 ? n.split("").map(c => c + c).join("") : n, 16);
-  let r = (num >> 16) + amt, g = ((num >> 8) & 0xff) + amt, b = (num & 0xff) + amt;
-  r = Math.max(0, Math.min(255, r)); g = Math.max(0, Math.min(255, g)); b = Math.max(0, Math.min(255, b));
-  return `rgb(${r},${g},${b})`;
-}
-
-function loop() {
-  raf = requestAnimationFrame(loop);
-  if (!document.getElementById("play").classList.contains("active")) return;
-  stepPhysics();
-  drawCapsules();
-}
-
-function resizeCapCanvas() {
-  const canvas = document.getElementById("capCanvas");
-  const rect = canvas.getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const w = Math.max(280, Math.floor(rect.width * dpr));
-  const h = Math.max(200, Math.floor(rect.height * dpr));
-  if (canvas.width !== w || canvas.height !== h) {
-    const sx = w / (canvas.width || w), sy = h / (canvas.height || h);
-    canvas.width = w; canvas.height = h;
-    capsules.forEach(c => { c.x *= sx; c.y *= sy; });
-  }
-}
-
-function renderChips() {
-  const box = document.getElementById("chips");
-  box.innerHTML = "";
-  ENTRIES.forEach(([name, full], i) => {
-    const n = remaining.get(name) ?? 0;
-    const color = COLORS[i % COLORS.length];
-    const el = document.createElement("div");
-    el.className = "chip" + (n === 0 ? " out" : "");
-    const dots = Array.from({ length: full }, (_, k) =>
-      `<i style="display:inline-block;width:7px;height:9px;border-radius:50%;margin-left:2px;background:${k < n ? color : '#555'};opacity:${k < n ? 1 : 0.25}"></i>`
-    ).join("");
-    el.innerHTML = `<span class="n" style="background:${color}">${n}</span>${name}${dots}`;
-    box.appendChild(el);
-  });
-}
-function renderWinners() {
-  const list = document.getElementById("winners");
-  list.innerHTML = "";
-  for (let i = 0; i < MAX_WIN; i++) {
-    const li = document.createElement("li");
-    if (winners[i]) {
-      li.className = "filled";
-      li.innerHTML = `<span class="badge">${i + 1}</span><span>${winners[i]}</span><span style="margin-left:auto;font-size:.7rem;opacity:.7">作廢剩餘票</span>`;
-    } else {
-      li.style.opacity = "0.4";
-      li.innerHTML = `<span class="badge">${i + 1}</span><span>等待扭出…</span>`;
-    }
-    list.appendChild(li);
-  }
-}
-function updateMeta() {
-  const live = capsules.filter(c => c.alive).length;
-  document.getElementById("ticketCount").textContent = live;
-  document.getElementById("drawnCount").textContent = winners.length;
-}
-
-function confetti(color) {
-  const c = document.getElementById("fx");
-  const ctx = c.getContext("2d");
-  const dpr = Math.min(devicePixelRatio || 1, 2);
-  c.width = innerWidth * dpr; c.height = innerHeight * dpr;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const parts = Array.from({ length: 120 }, () => ({
-    x: innerWidth * 0.5 + (Math.random() - 0.5) * 100,
-    y: innerHeight * 0.42,
-    vx: (Math.random() - 0.5) * 16,
-    vy: -Math.random() * 14 - 5,
-    g: 0.3 + Math.random() * 0.15,
-    s: 3 + Math.random() * 7,
-    rot: Math.random() * Math.PI,
-    vr: (Math.random() - 0.5) * 0.45,
-    color: Math.random() > 0.45 ? color : COLORS[(Math.random() * COLORS.length) | 0],
-    life: 55 + Math.random() * 45,
-  }));
-  (function tick() {
-    ctx.clearRect(0, 0, innerWidth, innerHeight);
-    let alive = false;
-    parts.forEach(p => {
-      if (p.life <= 0) return;
-      alive = true; p.life--; p.vy += p.g; p.x += p.vx; p.y += p.vy; p.rot += p.vr;
-      ctx.save();
-      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
-      ctx.globalAlpha = Math.max(0, p.life / 35);
-      ctx.fillStyle = p.color;
-      ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.55);
-      ctx.restore();
+      rg.addEventListener("input", () => {
+        p.weight = Math.max(1, Math.min(10, Number(rg.value) || 1));
+        refreshSetup();
+      });
+      list.appendChild(li);
     });
-    if (alive) requestAnimationFrame(tick);
-    else ctx.clearRect(0, 0, innerWidth, innerHeight);
-  })();
-}
-
-
-function showWinBanner(name) {
-  const el = document.getElementById("winBanner");
-  const nm = document.getElementById("winBannerName");
-  if (!el || !nm) return;
-  nm.textContent = name;
-  el.classList.remove("on");
-  // force reflow so animation restarts every draw
-  void el.offsetWidth;
-  el.style.visibility = "visible";
-  el.classList.add("on");
-  clearTimeout(showWinBanner._tm);
-  showWinBanner._tm = setTimeout(() => {
-    el.classList.remove("on");
-    el.style.visibility = "hidden";
-  }, 3500);
-  tone(330, 0.18, "sine", 0.05);
-  tone(495, 0.22, "sine", 0.05, 0.1);
-  tone(660, 0.28, "triangle", 0.06, 0.2);
-}
-
-function flash() {
-  const el = document.getElementById("flash");
-  el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
-}
-
-function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-function waitUntilCalm(timeout = 3500) {
-  return new Promise(resolve => {
-    const start = performance.now();
-    (function check() {
-      if (phys.mode === "calm" || performance.now() - start > timeout) resolve();
-      else requestAnimationFrame(check);
-    })();
-  });
-}
-
-function pickWinner() {
-  const live = capsules.filter(c => c.alive);
-  if (!live.length) return null;
-  return live[(Math.random() * live.length) | 0].name;
-}
-
-function voidPerson(name) {
-  remaining.set(name, 0);
-  capsules.forEach(c => {
-    if (c.name === name && c.alive) {
-      c.alive = false;
-      c.vx = (Math.random() - 0.5) * 3;
-      c.vy = 2 + Math.random() * 3;
-    }
-  });
-}
-
-async function drawOnce() {
-  if (busy) return;
-  if (winners.length >= MAX_WIN) return;
-  const live = capsules.filter(c => c.alive);
-  if (!live.length) { toast("膠囊已空"); return; }
-
-  busy = true;
-  ensureAudio();
-  const btn = document.getElementById("drawBtn");
-  btn.disabled = true;
-  document.getElementById("ejectCap").classList.remove("show");
-
-  // TUMBLE
-  phys.mode = "tumble";
-  phys.tumbleUntil = performance.now() + 1800;
-  live.forEach(c => {
-    c.vy -= 4 + Math.random() * 5;
-    c.vx += (Math.random() - 0.5) * 5;
-  });
-  sfxTumble();
-  document.getElementById("hint").textContent = "膠囊彈跳碰撞中…";
-
-  await waitUntilCalm(4000);
-  await wait(250);
-
-  const name = pickWinner();
-  if (!name) { busy = false; btn.disabled = false; return; }
-  const colorIdx = ENTRIES.findIndex(e => e[0] === name);
-  const color = COLORS[colorIdx % COLORS.length];
-
-  voidPerson(name);
-  winners.push(name);
-  sfxPop();
-  flash();
-
-  const eject = document.getElementById("ejectCap");
-  eject.classList.remove("show");
-  void eject.offsetWidth; // restart CSS animation every win
-  eject.style.background = ""; // use CSS gold
-  eject.innerHTML = `<span style="font-size:0.7rem;letter-spacing:0.2em;opacity:.75">中獎</span><br>${name}`;
-  eject.classList.add("show");
-  clearTimeout(window.__ejectHide);
-  window.__ejectHide = setTimeout(() => eject.classList.remove("show"), 3300);
-  setTimeout(() => { sfxWinFanfare(); confetti("#ffd56a"); }, 350);
-
-  renderChips();
-  renderWinners();
-  updateMeta();
-
-  await wait(3200);
-
-  if (winners.length >= MAX_WIN) {
-    document.getElementById("hint").textContent = "抽籤完成！";
-    sfxDone();
-    confetti(COLORS[0]);
-    await wait(900);
-    showResult();
-  } else {
-    btn.disabled = false;
-    document.getElementById("hint").textContent = `再扭 ${MAX_WIN - winners.length} 次`;
   }
-  busy = false;
-}
 
-function showResult() {
-  const box = document.getElementById("resultList");
-  box.innerHTML = "";
-  winners.forEach((name, i) => {
-    const idx = ENTRIES.findIndex(e => e[0] === name);
-    const color = COLORS[idx % COLORS.length];
-    const el = document.createElement("div");
-    el.className = "result-item";
-    el.style.animationDelay = `${i * 0.08}s`;
-    el.innerHTML = `<div class="dot" style="background:radial-gradient(circle at 30% 28%,#fff8,transparent 40%),${color}"></div>
-      <div><div class="rk">第 ${i + 1} 位</div><div class="nm">${name}</div></div>`;
-    box.appendChild(el);
-  });
-  showScreen("result");
-}
-
-/* Home logo preview — tiny tumbling capsules */
-(function logoAnim() {
-  const c = document.getElementById("logoCanvas");
-  const ctx = c.getContext("2d");
-  const balls = Array.from({ length: 18 }, (_, i) => ({
-    x: 180 + Math.random() * 200, y: 220 + Math.random() * 160,
-    vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2,
-    r: 16 + Math.random() * 6, color: COLORS[i % COLORS.length], rot: 0,
-  }));
-  function frame() {
-    if (!document.getElementById("home").classList.contains("active")) {
-      requestAnimationFrame(frame); return;
+  function renderOdds() {
+    const sel = selectedPeople();
+    const totalW = sel.reduce((s, p) => s + p.weight, 0) || 1;
+    const top = sel
+      .map((p) => ({ name: p.name, pct: (p.weight / totalW) * 100 }))
+      .sort((a, b) => b.pct - a.pct)
+      .slice(0, 8);
+    const box = el("odds");
+    if (!sel.length) {
+      box.innerHTML = `<li><span>未選參加者</span><span class="pct">—</span></li>`;
+      return;
     }
-    ctx.clearRect(0, 0, 560, 560);
-    // machine body
-    const g = ctx.createLinearGradient(140, 280, 140, 500);
-    g.addColorStop(0, "#ff7eb3"); g.addColorStop(1, "#8f1450");
-    roundRect(ctx, 120, 280, 320, 200, 28); ctx.fillStyle = g; ctx.fill();
-    // dome
-    ctx.beginPath();
-    ctx.ellipse(280, 250, 150, 170, 0, Math.PI, 0);
-    ctx.closePath();
-    const dg = ctx.createRadialGradient(220, 160, 20, 280, 250, 170);
-    dg.addColorStop(0, "rgba(255,255,255,0.35)");
-    dg.addColorStop(0.5, "rgba(160,210,255,0.12)");
-    dg.addColorStop(1, "rgba(40,20,60,0.15)");
-    ctx.fillStyle = dg; ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = 5; ctx.stroke();
-    // clip balls to dome
-    ctx.save();
-    ctx.beginPath();
-    ctx.ellipse(280, 250, 142, 162, 0, Math.PI, 0);
-    ctx.lineTo(280, 250); ctx.closePath(); ctx.clip();
-    balls.forEach(b => {
-      b.vy += 0.12; b.vx *= 0.995; b.vy *= 0.995;
-      b.x += b.vx; b.y += b.vy; b.rot += b.vx * 0.02;
-      // bounce in ellipse lower
-      const nx = (b.x - 280) / 130, ny = (b.y - 250) / 150;
-      if (nx * nx + ny * ny > 1 || b.y > 275) {
-        if (b.y > 275) { b.y = 275; b.vy *= -0.65; }
-        else {
-          const d = Math.hypot(nx, ny) || 1;
-          b.x = 280 + (nx / d) * 128; b.y = 250 + (ny / d) * 148;
-          b.vx *= -0.6; b.vy *= -0.6;
+    box.innerHTML = top
+      .map((o) => `<li><span>${o.name}</span><span class="pct num">${o.pct.toFixed(1)}%</span></li>`)
+      .join("");
+  }
+
+  function refreshSetup() {
+    const sel = selectedPeople();
+    const maxDraw = Math.max(1, sel.length || 1);
+    let n = Math.floor(Number(el("drawCount").value) || 1);
+    if (n < 1) n = 1;
+    if (n > maxDraw) n = maxDraw;
+    state.drawCount = n;
+    el("drawCount").value = String(n);
+    el("drawCount").max = String(maxDraw);
+    el("kpiTotal").textContent = String(people.length);
+    el("kpiSelected").textContent = String(sel.length);
+    el("kpiWeight").textContent = String(sel.reduce((s, p) => s + p.weight, 0));
+    el("kpiDraw").textContent = String(state.drawCount);
+    el("startBtn").disabled = sel.length === 0;
+    renderRoster();
+    renderOdds();
+  }
+
+  function renderWinners() {
+    const ol = el("winnerList");
+    ol.innerHTML = "";
+    for (let i = 0; i < state.drawCount; i++) {
+      const li = document.createElement("li");
+      if (state.winners[i]) {
+        li.className = "filled";
+        li.innerHTML = `<span class="rank num">${i + 1}</span><span class="wn">${state.winners[i]}</span>`;
+      } else {
+        li.className = "empty";
+        li.innerHTML = `<span class="rank num">${i + 1}</span><span>等待抽出…</span>`;
+      }
+      ol.appendChild(li);
+    }
+    el("winCount").textContent = `${state.winners.length} / ${state.drawCount}`;
+  }
+
+  function wait(ms) {
+    return new Promise((r) => setTimeout(r, ms));
+  }
+
+  async function animateSpin(finalName) {
+    const reel = el("reel");
+    const nameEl = el("reelName");
+    const pulse = el("pulse");
+    reel.classList.remove("reveal");
+    reel.classList.add("spinning");
+    pulse.classList.remove("run");
+    void pulse.offsetWidth;
+    if (!reduced()) pulse.classList.add("run");
+
+    const names = state.pool.map((p) => p.name).concat(state.winners);
+    const poolNames = state.pool.length
+      ? state.pool.map((p) => p.name)
+      : people.map((p) => p.name);
+
+    if (reduced()) {
+      nameEl.textContent = finalName;
+      reel.classList.remove("spinning");
+      reel.classList.add("reveal");
+      return;
+    }
+
+    sfxSpin();
+    const start = performance.now();
+    const dur = 1800;
+    let last = "";
+    return new Promise((resolve) => {
+      function tick(now) {
+        const t = Math.min(1, (now - start) / dur);
+        // ease out: slow near end
+        const step = Math.max(40, 60 + (1 - t) * 90);
+        if (!tick._next || now >= tick._next) {
+          let cand = poolNames[(Math.random() * poolNames.length) | 0];
+          if (cand === last && poolNames.length > 1) {
+            cand = poolNames[((poolNames.indexOf(cand) + 1) % poolNames.length)];
+          }
+          last = cand;
+          nameEl.textContent = cand;
+          nameEl.style.transform = `translateY(${(Math.random() - 0.5) * 6}px)`;
+          tick._next = now + step;
+        }
+        if (t < 1) {
+          state.spinTimer = requestAnimationFrame(tick);
+        } else {
+          nameEl.style.transform = "";
+          nameEl.textContent = finalName;
+          reel.classList.remove("spinning");
+          reel.classList.add("reveal");
+          resolve();
         }
       }
-      if (Math.random() < 0.01) { b.vy -= 3 + Math.random() * 3; b.vx += (Math.random() - 0.5) * 2; }
-      ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot);
-      const rg = ctx.createRadialGradient(-5, -6, 2, 0, 0, b.r);
-      rg.addColorStop(0, "#fff"); rg.addColorStop(0.4, b.color); rg.addColorStop(1, shade(b.color, -40));
-      ctx.beginPath(); ctx.ellipse(0, 0, b.r * 0.85, b.r, 0, 0, Math.PI * 2);
-      ctx.fillStyle = rg; ctx.fill();
-      ctx.restore();
+      state.spinTimer = requestAnimationFrame(tick);
     });
-    // collide simple
-    for (let i = 0; i < balls.length; i++) for (let j = i + 1; j < balls.length; j++) {
-      const a = balls[i], b = balls[j];
-      const dx = b.x - a.x, dy = b.y - a.y, dist = Math.hypot(dx, dy) || 1, min = a.r + b.r;
-      if (dist < min) {
-        const nx = dx / dist, ny = dy / dist, o = (min - dist) / 2;
-        a.x -= nx * o; a.y -= ny * o; b.x += nx * o; b.y += ny * o;
-        const vn = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
-        if (vn < 0) { a.vx -= vn * nx; a.vy -= vn * ny; b.vx += vn * nx; b.vy += vn * ny; }
-      }
-    }
-    ctx.restore();
-    // glass shine
-    ctx.beginPath();
-    ctx.ellipse(280, 250, 150, 170, 0, Math.PI, 0);
-    ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.lineWidth = 2; ctx.stroke();
-    requestAnimationFrame(frame);
   }
-  function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
-  }
-  frame();
-})();
 
-document.getElementById("startBtn").addEventListener("click", () => {
-  ensureAudio();
-  rebuildAll();
-  showScreen("play");
-  tone(660, 0.12, "sine", 0.05);
-  toast("扭蛋機就緒 · 一票一粒膠囊");
-});
-document.getElementById("drawBtn").addEventListener("click", drawOnce);
-document.getElementById("againBtn").addEventListener("click", () => {
-  rebuildAll();
-  showScreen("play");
-  toast("全新一輪開始！");
-  sfxPop();
-});
-document.getElementById("homeBtn").addEventListener("click", () => {
-  showScreen("home");
-});
-window.addEventListener("resize", () => {
-  if (document.getElementById("play").classList.contains("active")) resizeCapCanvas();
-});
-</script>
-  <div class="win-banner" id="winBanner" aria-live="assertive">
-    <div class="spark"></div>
-    <div class="board">
-      <div class="tag">★ 中獎 ★</div>
-      <div class="who" id="winBannerName"></div>
-    </div>
-  </div>
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
-}
+  async function drawNext() {
+    if (state.busy) return;
+    if (state.winners.length >= state.drawCount) {
+      finish();
+      return;
+    }
+    if (!state.pool.length) {
+      toast("抽籤池已空");
+      return;
+    }
+    state.busy = true;
+    el("drawNext").disabled = true;
+    el("drawNext2").disabled = true;
+    el("backSetup").disabled = true;
+    ensureAudio();
+    el("stageLabel").textContent = `第 ${state.winners.length + 1} / ${state.drawCount} 位`;
+    el("stageHint").textContent = reduced() ? "抽出中…" : "轉動中…";
+    el("drawSub").textContent = `池內 ${state.pool.length} 人`;
+
+    const idx = pickWeighted(state.pool);
+    if (idx == null) {
+      state.busy = false;
+      el("drawNext").disabled = false;
+      el("drawNext2").disabled = false;
+      el("backSetup").disabled = false;
+      return;
+    }
+    const name = state.pool[idx].name;
+    await animateSpin(name);
+    // Remove after reveal so animation can still flicker this name
+    state.pool.splice(idx, 1);
+
+    sfxReveal();
+    state.winners.push(name);
+    renderWinners();
+    el("stageHint").textContent = `抽出：${name}`;
+    el("drawSub").textContent = `已抽出 ${state.winners.length} / ${state.drawCount} · 剩餘 ${state.pool.length}`;
+
+    await wait(reduced() ? 350 : 900);
+
+    if (state.winners.length >= state.drawCount || !state.pool.length) {
+      await wait(400);
+      finish();
+    } else {
+      el("drawNext").disabled = false;
+      el("drawNext2").disabled = false;
+      el("backSetup").disabled = false;
+      el("stageLabel").textContent = "準備下一抽";
+      el("stageHint").textContent = `仲要抽 ${state.drawCount - state.winners.length} 位`;
+      el("reel").classList.remove("reveal");
+      el("reelName").textContent = "—";
+      state.busy = false;
+    }
+  }
+
+  function finish() {
+    sfxDone();
+    const grid = el("resultGrid");
+    grid.innerHTML = "";
+    state.winners.forEach((name, i) => {
+      const card = document.createElement("div");
+      card.className = "result-card";
+      card.innerHTML = `<div class="rk">第 ${i + 1} 位</div><div class="nm">${name}</div>`;
+      grid.appendChild(card);
+    });
+    el("resultSub").textContent = `共 ${state.winners.length} 位得獎者`;
+    showScreen("result");
+    state.busy = false;
+    el("drawNext").disabled = false;
+    el("drawNext2").disabled = false;
+    el("backSetup").disabled = false;
+  }
+
+  function beginDraw() {
+    const sel = selectedPeople();
+    if (!sel.length) {
+      toast("請至少勾選一位參加者");
+      return;
+    }
+    let n = Math.floor(Number(el("drawCount").value) || 1);
+    if (n < 1) n = 1;
+    if (n > sel.length) n = sel.length;
+    state.drawCount = n;
+    state.winners = [];
+    state.pool = sel.map((p) => ({ name: p.name, weight: p.weight }));
+    ensureAudio();
+    sfxStart();
+    renderWinners();
+    el("reel").classList.remove("reveal");
+    el("reelName").textContent = "—";
+    el("stageLabel").textContent = "準備就緒";
+    el("stageHint").textContent = "按「扭下一顆」開始";
+    el("drawSub").textContent = `本輪抽出 ${state.drawCount} 人 · 池內 ${state.pool.length} 人`;
+    showScreen("draw");
+    toast("抽籤台就緒");
+  }
+
+  /* —— Events —— */
+  el("drawCount").addEventListener("change", refreshSetup);
+  el("drawCount").addEventListener("input", refreshSetup);
+  el("filter").addEventListener("input", () => {
+    state.filter = el("filter").value;
+    renderRoster();
+  });
+  el("selectAll").addEventListener("click", () => {
+    people.forEach((p) => { p.selected = true; });
+    refreshSetup();
+  });
+  el("selectNone").addEventListener("click", () => {
+    people.forEach((p) => { p.selected = false; });
+    refreshSetup();
+  });
+  el("startBtn").addEventListener("click", beginDraw);
+  el("drawNext").addEventListener("click", drawNext);
+  el("drawNext2").addEventListener("click", drawNext);
+  el("backSetup").addEventListener("click", () => {
+    if (state.busy) return;
+    cancelAnimationFrame(state.spinTimer);
+    showScreen("setup");
+    refreshSetup();
+  });
+  el("againBtn").addEventListener("click", () => {
+    showScreen("setup");
+    refreshSetup();
+    beginDraw();
+  });
+  el("homeBtn").addEventListener("click", () => {
+    showScreen("setup");
+    refreshSetup();
+  });
+  el("muteBtn").addEventListener("click", () => {
+    state.muted = !state.muted;
+    el("muteBtn").setAttribute("aria-pressed", state.muted ? "true" : "false");
+    el("muteBtn").textContent = state.muted ? "已靜音" : "聲音開";
+    if (!state.muted) ensureAudio();
+  });
+
+  // Unlock audio on first gesture anywhere
+  ["pointerdown", "keydown"].forEach((ev) => {
+    window.addEventListener(ev, () => ensureAudio(), { once: true, passive: true });
+  });
+
+  refreshSetup();
+})();
 </script>
 </body>
 </html>
